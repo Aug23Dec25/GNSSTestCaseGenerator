@@ -194,6 +194,6 @@ def download_orbit_file(output_directory, gps_week, year, day_of_year):
         return sp3_file_path
     # Catches any exception that is either a known FTP error (e.g., error_reply, error_temp, error_perm, etc.)
     # or any other Python Exception.
-    except (ftplib.all_errors, Exception) as e:
+    except ftplib.all_errors as e:
         raise RuntimeError(f"Error downloading orbit file for GPS week {gps_week}, year {year}, day {day_of_year} from "
                            f"server '{ftp_host}': {e}")
