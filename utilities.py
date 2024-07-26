@@ -256,7 +256,8 @@ def generate_test_case(time_first, time_last, nmea_file_path, observation_file_p
 
     # If the NMEA file name was in the MATLAB file, it means that a test case corresponding to the data set exists, and
     # no duplicate test case should be created.
-    nmea_file_exists = any(f"nmeaFile='{nmea_file_path}'" in line for line in lines)
+    nmea_file_exists = any(f"\t\tnmeaFile='{nmea_file_path.replace(os.path.sep, '/')}';\n"
+                           in line for line in lines)
     if nmea_file_exists:
         return False
 
