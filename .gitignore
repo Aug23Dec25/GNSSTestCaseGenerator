@@ -1,0 +1,42 @@
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environment directories
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Ignore distribution/build directories
+build/
+dist/
+*.egg-info/
+.eggs/
+wheelhouse/
+
+# Ignore local configuration files
+config.json
+
+# Ignore MATLAB temporary files
+*.asv
+*.m~ 
+
+# Ignore Markdown backup files
+*.md~
