@@ -154,7 +154,7 @@ def download_orbit_file(output_directory, gps_week, year, day_of_year):
         ftp = ftplib.FTP(ftp_host)
         # Logs into the FTP server anonymously (by default).
         ftp.login()
-        ftp.cwd("GNSS" + os.path.sep + "products" + os.path.sep + "mgex")
+        ftp.cwd("GNSS/products/mgex")
 
         # Checks if the directory for the specific GPS week exists on the server. nlst() method retrieves a list of
         # all the filenames in the cwd on the server.
