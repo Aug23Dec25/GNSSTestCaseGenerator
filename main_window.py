@@ -152,21 +152,26 @@ class GNSSTestCaseGenerator:
 
         self.toggle_button = tk.Button(self.detail_frame, text="▼ Details", command=self.toggle_details)
         self.toggle_button.config(width=10)
-        self.toggle_button.pack(side=tk.LEFT, padx=5)
+        self.toggle_button.grid(row=0, column=0, padx=5, sticky='w')
 
-        # Use default font, set height for 10 lines of text
-        self.detail_text = tk.Text(self.master, wrap="word", height=10)
-        self.detail_text.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
-        self.detail_text.grid_remove()
+        # Create a frame for the text widget and vertical scrollbar
+        self.text_frame = tk.Frame(self.master)
+        self.text_frame.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
 
-        self.detail_vertical_scrollbar = ttk.Scrollbar(self.master, orient="vertical", command=self.detail_text.yview)
-        self.detail_vertical_scrollbar.grid(row=5, column=3, sticky='ns')
+        self.detail_text = tk.Text(self.text_frame, wrap="word", height=10)
+        self.detail_text.grid(row=0, column=0, sticky='nsew')
+
+        self.detail_vertical_scrollbar = ttk.Scrollbar(self.text_frame, orient="vertical",
+                                                       command=self.detail_text.yview)
+        self.detail_vertical_scrollbar.grid(row=0, column=1, sticky='ns')
         self.detail_text['yscrollcommand'] = self.detail_vertical_scrollbar.set
-        self.detail_vertical_scrollbar.grid_remove()
 
-        self.detail_horizontal_scrollbar = ttk.Scrollbar(self.master, orient="horizontal", command=self.detail_text.xview)
+        self.detail_horizontal_scrollbar = ttk.Scrollbar(self.master, orient="horizontal",
+                                                         command=self.detail_text.xview)
         self.detail_horizontal_scrollbar.grid(row=6, column=0, columnspan=3, sticky='ew')
         self.detail_text['xscrollcommand'] = self.detail_horizontal_scrollbar.set
+
+        self.text_frame.grid_remove()
         self.detail_horizontal_scrollbar.grid_remove()
 
     def browse_data_directory(self):
@@ -214,7 +219,6 @@ class GNSSTestCaseGenerator:
         If no data files are found, it logs an appropriate message. It also handles any
         exceptions during the processing and logs error messages accordingly.
         """
-
         # Clear the detail window messages
         self.detail_text.delete(1.0, tk.END)
         self.log_messages.clear()
@@ -225,6 +229,8 @@ class GNSSTestCaseGenerator:
         # Disable buttons to prevent unwanted user actions during processing
         self.write_button.config(state="disabled")
         self.cancel_button.config(state="disabled")
+        self.browse_data_button.config(state="disabled")
+        self.progress_bar["value"] = 0
 
         def process():
             """
@@ -284,8 +290,8 @@ class GNSSTestCaseGenerator:
                     else:
                         # Log a failure message if the test case generation fails
                         self.log_message(
-                            f"Test case of {date_obj.strftime('%d/%m/%Y %H:%M:%S')} in {data_filepath} "
-                            f"generated unsuccessfully."
+                            f"Test case for {date_obj.strftime('%d/%m/%Y at %H:%M:%S')} in directory "
+                            f"{data_filepath} already exists."
                         )
                 except Exception as e:
                     # Log any exceptions that occur during the processing
@@ -294,14 +300,13 @@ class GNSSTestCaseGenerator:
                 finally:
                     # Update the progress bar value and add a small delay
                     self.progress_bar["value"] = idx + 1
-                    time.sleep(0.5)
-
-            if total_generated_test_cases == 0:
-                self.log_message("0 test cases written.")
+                    self.update_detail_text()
+                    time.sleep(0.1)
 
             # Re-enable the action buttons after processing is complete
             self.write_button.config(state="normal")
             self.cancel_button.config(state="normal")
+            self.browse_data_button.config(state="normal")
 
         # Start the process function in a new thread to avoid blocking the main UI thread
         threading.Thread(target=process).start()
@@ -324,15 +329,13 @@ class GNSSTestCaseGenerator:
 
         if self.details_visible:
             # Hide the detail text area and scrollbars
-            self.detail_text.grid_remove()
-            self.detail_vertical_scrollbar.grid_remove()
+            self.text_frame.grid_remove()
             self.detail_horizontal_scrollbar.grid_remove()
             self.toggle_button.config(text="▼ Details")
             self.master.geometry("")
         else:
             # Show the detail text area and scrollbars
-            self.detail_text.grid()
-            self.detail_vertical_scrollbar.grid()
+            self.text_frame.grid()
             self.detail_horizontal_scrollbar.grid()
             self.toggle_button.config(text="▲ Details")
             self.update_detail_text()
@@ -347,17 +350,29 @@ class GNSSTestCaseGenerator:
         @brief Updates the detail text widget with logged messages.
 
         This method clears the existing text in the detail text widget and inserts the current log messages.
-        It ensures that the widget scrolls to the end to show the latest messages and adjusts the width of
-        the text widget to fit the longest line of text.
+        It ensures that the widget scrolls to the end to show the latest messages and wraps the text to fit
+        within the width of the detail text widget.
         """
         self.detail_text.delete(1.0, tk.END)  # Clear the existing text
-        for message in self.log_messages:
-            self.detail_text.insert(tk.END, message + "\n")
+        for index, message in enumerate(self.log_messages, start=1):
+            if "0 test cases written." not in message:
+                self.detail_text.insert(tk.END, f"{index}. {message}\n")
+            else:
+                self.detail_text.insert(tk.END, f"{message}\n")
         self.detail_text.see(tk.END)
 
-        # Adjust the width of the Text widget to fit the longest line of text
-        longest_line_length = max(len(line) for line in self.log_messages)
-        self.detail_text.config(width=longest_line_length)
+    def wrap_text(self, text, width):
+        """
+        Wraps the text to the specified width.
+
+        Args:
+            text (str): The text to wrap.
+            width (int): The width to wrap the text to.
+
+        Returns:
+            str: The wrapped text.
+        """
+        return "\n".join(text[i:i + width] for i in range(0, len(text), width))
 
     def log_message(self, message):
         """
@@ -369,6 +384,7 @@ class GNSSTestCaseGenerator:
         @param message The message to log.
         """
         self.log_messages.append(message)
+        self.update_detail_text()  # Update detail text in real-time
 
     def on_closing(self):
         """
